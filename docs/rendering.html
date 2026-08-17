@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLib &mdash; Rendering</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+    <div class="brand"><span class="brand-name">HTMLib</span><span class="brand-tag">docs</span></div>
+    <span class="version-badge">v0.1.0</span>
+    <div class="nav-group">
+        <h4>Getting Started</h4>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="integration.html">For Plugin Developers</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Building Menus</h4>
+        <ul>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="markup.html">XML Markup</a></li>
+            <li><a href="variables-conditions.html">Variables &amp; Conditions</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Behavior</h4>
+        <ul>
+            <li><a href="actions-events.html">Actions &amp; Events</a></li>
+            <li><a href="rendering.html" class="active">Rendering</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="content">
+
+<h1>Rendering</h1>
+<p class="lede">The exact same menu tree can render two different ways &mdash; you pick per menu, and
+every component works under both.</p>
+
+<h2 id="render-types">Dialog vs. inventory</h2>
+<table>
+<tr><th>Render type</th><th>Selected with</th><th>Renders as</th></tr>
+<tr><td><code>DIALOG</code> <em>(default)</em></td><td><code>menu.dialog()</code> / <code>type="dialog"</code></td><td>Mojang's native dialog UI.</td></tr>
+<tr><td><code>INVENTORY</code></td><td><code>menu.inventory()</code> / <code>menu.inventoryRows(n)</code> / <code>type="inventory"</code> / <code>rows="n"</code></td><td>A classic chest-style inventory GUI, <code>n</code> rows tall (1&ndash;6, clamped).</td></tr>
+</table>
+<pre><code>Menu inventoryMenu = Menu.create("myplugin:shop-inv")
+    .inventoryRows(4)
+    .title("Shop")
+    .row(row -&gt; row.button("Buy Sword").icon("diamond_sword").action("myplugin:buy.sword"));</code></pre>
+<p>Everything documented in <a href="components.html">Components</a> and
+<a href="markup.html">XML Markup</a> applies identically to both render types &mdash; the same markup
+or builder chain just needs a different <code>type</code>/<code>renderType()</code>.</p>
+
+<h2 id="dialog-details">How dialog rendering works</h2>
+<ul>
+<li><code>Text</code> and <code>Icon</code> elements become the dialog's body content, in order.</li>
+<li><code>Button</code> elements become dialog action buttons, laid out in a grid sized to the menu's content.</li>
+<li><code>close-on-escape</code> maps directly to whether the dialog can be dismissed with Escape.</li>
+<li>If a button's <code>enabled-if</code>/<code>enabledIf</code> condition is false when clicked, the
+click is rejected with <em>"You can't do that right now."</em> instead of dispatching the action.</li>
+</ul>
+
+<h2 id="inputs">Inputs &amp; submit</h2>
+<p><code>&lt;input&gt;</code> elements render as native form fields (text box, toggle, number slider, or
+single-choice picker, depending on <code>type</code>). Their current values are collected whenever
+<strong>any</strong> button in the menu is clicked, not just a designated submit button.</p>
+<p>If you set <code>submitAction</code> / <code>submit-label</code> on the menu, HTMLib adds one more
+button automatically that fires that action id with <code>source() == null</code>:</p>
+<pre><code>Menu menu = Menu.create("myplugin:shop")
+    .submitAction("myplugin:shop.checkout")
+    .submitLabel("Buy")
+    .add(new Input("quantity").numberRange(1, 10, 1, 1).label("Quantity"));
+
+HTMLib.registerAction("myplugin:shop.checkout", event -&gt; {
+    Float quantity = event.inputNumber("quantity");
+    // ...
+});</code></pre>
+<p>Read submitted values back through
+<a href="actions-events.html#action-event"><code>ActionEvent.inputs()</code></a> or its typed
+accessors.</p>
+
+<h2 id="notes">Notes</h2>
+<div class="callout"><strong>Image rendering:</strong> an <code>&lt;image&gt;</code> element currently
+always renders using its <code>fallback-icon</code> material rather than an arbitrary image source
+&mdash; pick a representative item icon for now.</div>
+
+<div class="page-nav">
+<a href="actions-events.html"><span class="dir">Back</span>&larr; Actions &amp; Events</a>
+<span></span>
+</div>
+
+<footer class="site-footer">HTMLib &middot; core library documentation</footer>
+</main>
+</div>
+</body>
+</html>

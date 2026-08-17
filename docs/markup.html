@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLib &mdash; XML Markup</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+    <div class="brand"><span class="brand-name">HTMLib</span><span class="brand-tag">docs</span></div>
+    <span class="version-badge">v0.1.0</span>
+    <div class="nav-group">
+        <h4>Getting Started</h4>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="integration.html">For Plugin Developers</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Building Menus</h4>
+        <ul>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="markup.html" class="active">XML Markup</a></li>
+            <li><a href="variables-conditions.html">Variables &amp; Conditions</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Behavior</h4>
+        <ul>
+            <li><a href="actions-events.html">Actions &amp; Events</a></li>
+            <li><a href="rendering.html">Rendering</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="content">
+
+<h1>XML Markup</h1>
+<p class="lede">Everything the Java builder API can do also has an HTML-like markup form, parsed by
+<code>dev.htmlib.markup.MarkupLoader</code>.</p>
+
+<pre><code>Menu menu = MarkupLoader.parse(markupString);
+Menu menu = MarkupLoader.parseFile(Path.of("menus/shop.xml"));</code></pre>
+
+<p>Both accept an optional <code>ConditionRegistry</code> as a second argument if you've registered
+custom condition prefixes (see <a href="variables-conditions.html#conditions">Conditions</a>) &mdash;
+otherwise a fresh default registry is used.</p>
+
+<div class="callout"><strong>Under the hood:</strong> markup is parsed as real XML (DOCTYPE declarations
+and external entities are disabled), so it must be well-formed &mdash; close every tag, quote every
+attribute.</div>
+
+<h2 id="menu-tag">&lt;menu&gt; &mdash; the root element</h2>
+<p>Every document must have exactly one root <code>&lt;menu&gt;</code> element.</p>
+<table>
+<tr><th>Attribute</th><th>Default</th><th>Effect</th></tr>
+<tr><td><code>id</code></td><td>auto-generated</td><td>The menu's registry id.</td></tr>
+<tr><td><code>title</code></td><td><em>(empty)</em></td><td>Menu title.</td></tr>
+<tr><td><code>close-on-escape</code></td><td><code>true</code></td><td>Set to <code>"false"</code> to disable.</td></tr>
+<tr><td><code>type</code></td><td><code>dialog</code></td><td><code>"dialog"</code> or <code>"inventory"</code>.</td></tr>
+<tr><td><code>rows</code></td><td>&mdash;</td><td>Inventory row count, 1&ndash;6 (also forces <code>type="inventory"</code>).</td></tr>
+<tr><td><code>submit-action</code></td><td>&mdash;</td><td>Action id for the auto-added submit button.</td></tr>
+<tr><td><code>submit-label</code></td><td><code>"Submit"</code></td><td>Label for the submit button.</td></tr>
+</table>
+
+<h2 id="elements">Child elements</h2>
+<table>
+<tr><th>Tag</th><th>Maps to</th></tr>
+<tr><td><code>&lt;div&gt;</code></td><td><code>Div</code> &mdash; plain container</td></tr>
+<tr><td><code>&lt;row&gt;</code></td><td><code>Row</code> &mdash; horizontal flex container</td></tr>
+<tr><td><code>&lt;column&gt;</code></td><td><code>Column</code> &mdash; vertical flex container</td></tr>
+<tr><td><code>&lt;list&gt;</code></td><td><code>ListComponent</code> &mdash; container; wire up its data source/renderer in Java after parsing</td></tr>
+<tr><td><code>&lt;button&gt;</code></td><td><code>Button</code></td></tr>
+<tr><td><code>&lt;text&gt;</code></td><td><code>Text</code></td></tr>
+<tr><td><code>&lt;icon&gt;</code></td><td><code>Icon</code></td></tr>
+<tr><td><code>&lt;image&gt;</code></td><td><code>Image</code></td></tr>
+<tr><td><code>&lt;input&gt;</code></td><td><code>Input</code></td></tr>
+<tr><td><code>&lt;style&gt;</code></td><td>not a component &mdash; a CSS-like block, see below</td></tr>
+</table>
+<p><code>&lt;div&gt;</code>, <code>&lt;row&gt;</code>, <code>&lt;column&gt;</code> and
+<code>&lt;list&gt;</code> can nest any of the elements above, including each other.</p>
+
+<h3 id="common-attrs">Attributes available on every element</h3>
+<table>
+<tr><th>Attribute</th><th>Effect</th></tr>
+<tr><td><code>id</code></td><td>Element id.</td></tr>
+<tr><td><code>class</code></td><td>Space-separated CSS class names, matched against <code>&lt;style&gt;</code> rules.</td></tr>
+<tr><td><code>visible-if</code></td><td>A <a href="variables-conditions.html#conditions">condition expression</a> gating visibility.</td></tr>
+<tr><td><code>permission</code></td><td>Shorthand for <code>visible-if="permission:&lt;node&gt;"</code>.</td></tr>
+<tr><td><code>style</code></td><td>Inline declarations, e.g. <code>style="gap:2;align:center"</code>.</td></tr>
+<tr><td><code>gap</code>, <code>align</code>, <code>direction</code>, <code>order</code></td><td>Shorthands that each set the matching style property directly.</td></tr>
+</table>
+
+<h3 id="button-tag">&lt;button&gt;</h3>
+<p>The element's text content becomes the button label (whitespace is collapsed).</p>
+<table>
+<tr><th>Attribute</th><th>Effect</th></tr>
+<tr><td><code>icon</code></td><td>Item material id.</td></tr>
+<tr><td><code>tooltip</code></td><td>Hover tooltip.</td></tr>
+<tr><td><code>action</code></td><td>Action id fired on click. <code>"back"</code>, <code>"close"</code> and <code>"open:&lt;menuId&gt;"</code> are handled automatically.</td></tr>
+<tr><td><code>width</code></td><td>Button width (dialog rendering).</td></tr>
+<tr><td><code>enabled-if</code></td><td>Condition expression &mdash; disables (rather than hides) the button.</td></tr>
+</table>
+<pre><code>&lt;button icon=<span class="attr">"diamond_sword"</span> tooltip=<span class="attr">"50 coins"</span> action=<span class="attr">"myplugin:buy.sword"</span>&gt;
+    Buy Sword
+&lt;/button&gt;</code></pre>
+
+<h3 id="text-tag">&lt;text&gt;</h3>
+<p>Element text content becomes the text content, with <code>{{ variable }}</code> tokens interpolated
+at render time.</p>
+<pre><code>&lt;text&gt;Welcome, {{ player.name }}!&lt;/text&gt;</code></pre>
+
+<h3 id="icon-tag">&lt;icon&gt;</h3>
+<table>
+<tr><th>Attribute</th><th>Effect</th></tr>
+<tr><td><code>material</code></td><td>Item material id. Falls back to the element's text content if omitted.</td></tr>
+<tr><td><code>count</code></td><td>Stack size.</td></tr>
+<tr><td><code>show-tooltip</code></td><td><code>"true"</code>/<code>"false"</code>.</td></tr>
+</table>
+<pre><code>&lt;icon material=<span class="attr">"emerald"</span> count=<span class="attr">"3"</span> /&gt;</code></pre>
+
+<h3 id="image-tag">&lt;image&gt;</h3>
+<table>
+<tr><th>Attribute</th><th>Effect</th></tr>
+<tr><td><code>src</code> (or <code>source</code>)</td><td>Image source.</td></tr>
+<tr><td><code>fallback-icon</code></td><td>Material used to represent the image (see the note in <a href="components.html#image">Components &rarr; Image</a>).</td></tr>
+</table>
+
+<h3 id="input-tag">&lt;input&gt;</h3>
+<p>Requires a <code>key</code> (or <code>id</code>) attribute.</p>
+<table>
+<tr><th>Attribute</th><th>Effect</th></tr>
+<tr><td><code>key</code> / <code>id</code></td><td><strong>Required.</strong> The key values are read back under.</td></tr>
+<tr><td><code>label</code></td><td>Field label.</td></tr>
+<tr><td><code>type</code></td><td><code>text</code> (default), <code>boolean</code>/<code>bool</code>, <code>number</code>/<code>number-range</code>, or <code>option</code>/<code>single-option</code>.</td></tr>
+<tr><td><code>initial</code></td><td>Initial value &mdash; text string, <code>"true"</code>/<code>"false"</code>, or a number, depending on <code>type</code>.</td></tr>
+<tr><td><code>min</code>, <code>max</code>, <code>step</code></td><td><code>number</code> type only.</td></tr>
+<tr><td><code>options</code></td><td><code>option</code> type only &mdash; comma-separated list, e.g. <code>options="small, medium, large"</code>.</td></tr>
+<tr><td><code>width</code></td><td>Field width.</td></tr>
+</table>
+<pre><code>&lt;input key=<span class="attr">"amount"</span> type=<span class="attr">"number"</span> label=<span class="attr">"Amount"</span> min=<span class="attr">"1"</span> max=<span class="attr">"64"</span> initial=<span class="attr">"1"</span> /&gt;
+&lt;input key=<span class="attr">"size"</span> type=<span class="attr">"option"</span> label=<span class="attr">"Size"</span> options=<span class="attr">"small, medium, large"</span> /&gt;</code></pre>
+
+<h2 id="style-tag">&lt;style&gt;</h2>
+<p>A CSS-like block of class-based rules. Rules only fill in style properties an element doesn't
+already have set inline &mdash; inline <code>style</code>/shorthand attributes always win.</p>
+<pre><code>&lt;style&gt;
+    .highlight { gap: 3; align: center; }
+    .danger, .warn { direction: horizontal; }
+&lt;/style&gt;
+
+&lt;row class=<span class="attr">"highlight"</span>&gt;
+    ...
+&lt;/row&gt;</code></pre>
+
+<h2 id="full-example">Full example</h2>
+<pre><code>&lt;menu id=<span class="attr">"myplugin:shop"</span> title=<span class="attr">"Shop"</span> submit-action=<span class="attr">"myplugin:shop.checkout"</span>&gt;
+    &lt;style&gt;
+        .row-gap { gap: 3; }
+    &lt;/style&gt;
+
+    &lt;text&gt;Welcome, {{ player.name }}! You have {{ shop.coins }} coins.&lt;/text&gt;
+
+    &lt;row class=<span class="attr">"row-gap"</span>&gt;
+        &lt;button icon=<span class="attr">"diamond_sword"</span> tooltip=<span class="attr">"50 coins"</span> action=<span class="attr">"myplugin:buy.sword"</span>&gt;
+            Buy Sword
+        &lt;/button&gt;
+        &lt;button icon=<span class="attr">"shield"</span> tooltip=<span class="attr">"80 coins"</span>
+                action=<span class="attr">"myplugin:buy.shield"</span> enabled-if=<span class="attr">"permission:myplugin.shop.shield"</span>&gt;
+            Buy Shield
+        &lt;/button&gt;
+    &lt;/row&gt;
+
+    &lt;input key=<span class="attr">"quantity"</span> type=<span class="attr">"number"</span> label=<span class="attr">"Quantity"</span> min=<span class="attr">"1"</span> max=<span class="attr">"10"</span> initial=<span class="attr">"1"</span> /&gt;
+
+    &lt;row&gt;
+        &lt;button icon=<span class="attr">"barrier"</span> action=<span class="attr">"close"</span>&gt;Close&lt;/button&gt;
+    &lt;/row&gt;
+&lt;/menu&gt;</code></pre>
+<p><code>{{ shop.coins }}</code> here is a stand-in for a variable your own plugin would register
+&mdash; see <a href="variables-conditions.html#variables">Variables</a>.</p>
+
+<div class="page-nav">
+<a href="components.html"><span class="dir">Back</span>&larr; Components</a>
+<a class="next" href="variables-conditions.html"><span class="dir">Next</span>Variables &amp; Conditions &rarr;</a>
+</div>
+
+<footer class="site-footer">HTMLib &middot; core library documentation</footer>
+</main>
+</div>
+</body>
+</html>

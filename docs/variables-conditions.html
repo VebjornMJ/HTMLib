@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLib &mdash; Variables &amp; Conditions</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+    <div class="brand"><span class="brand-name">HTMLib</span><span class="brand-tag">docs</span></div>
+    <span class="version-badge">v0.1.0</span>
+    <div class="nav-group">
+        <h4>Getting Started</h4>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="integration.html">For Plugin Developers</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Building Menus</h4>
+        <ul>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="markup.html">XML Markup</a></li>
+            <li><a href="variables-conditions.html" class="active">Variables &amp; Conditions</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Behavior</h4>
+        <ul>
+            <li><a href="actions-events.html">Actions &amp; Events</a></li>
+            <li><a href="rendering.html">Rendering</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="content">
+
+<h1>Variables &amp; Conditions</h1>
+<p class="lede">Two independent, small systems: variables interpolate live text, conditions gate
+visibility and interactivity.</p>
+
+<h2 id="variables">Variables</h2>
+<p>Any rendered text &mdash; a <code>Text</code> element's content, a button's label or tooltip, a
+menu's title, an input's label &mdash; is scanned for <code>{{ key }}</code> tokens and interpolated
+per-player at render time.</p>
+<pre><code>&lt;text&gt;Welcome, {{ player.name }}! Online: {{ server.online }}&lt;/text&gt;</code></pre>
+
+<h3 id="builtin-variables">Built-in variables</h3>
+<table>
+<tr><th>Key</th><th>Resolves to</th></tr>
+<tr><td><code>player.name</code></td><td>Player's name</td></tr>
+<tr><td><code>player.uuid</code></td><td>Player's UUID</td></tr>
+<tr><td><code>player.level</code></td><td>Experience level</td></tr>
+<tr><td><code>player.health</code></td><td>Health, formatted to 1 decimal</td></tr>
+<tr><td><code>player.food</code></td><td>Food level</td></tr>
+<tr><td><code>player.world</code></td><td>World name</td></tr>
+<tr><td><code>player.gamemode</code></td><td>Game mode name</td></tr>
+<tr><td><code>player.x</code> / <code>player.y</code> / <code>player.z</code></td><td>Block coordinates</td></tr>
+<tr><td><code>player.ping</code></td><td>Player's ping</td></tr>
+<tr><td><code>server.online</code></td><td>Online player count</td></tr>
+<tr><td><code>server.max_players</code></td><td>Max player count</td></tr>
+<tr><td><code>server.name</code></td><td>Server name</td></tr>
+<tr><td><code>server.version</code></td><td>Server version string</td></tr>
+<tr><td><code>server.tps</code></td><td>Current TPS, formatted to 2 decimals</td></tr>
+</table>
+
+<h3 id="custom-variables">Registering your own</h3>
+<pre><code>HTMLib.variables().register("shop.coins", player -&gt; String.valueOf(economy.balance(player)));</code></pre>
+<p>A <code>VariableResolver</code> is just <code>String resolve(Player player)</code>. Notes on
+resolution:</p>
+<ul>
+<li>An unregistered key renders literally, e.g. <code>{{ nope }}</code> stays as-is.</li>
+<li>If a resolver throws, the token resolves to an empty string rather than breaking the menu.</li>
+<li>You can register a catch-all with <code>VariableRegistry.fallback(Function&lt;String, VariableResolver&gt;)</code>, useful for namespaced/dynamic keys.</li>
+</ul>
+
+<h3 id="placeholderapi">PlaceholderAPI</h3>
+<p>If PlaceholderAPI is installed, HTMLib runs its own <code>{{ }}</code> interpolation first and then
+passes the result through PlaceholderAPI, so <code>%placeholder%</code> tokens from any PlaceholderAPI
+expansion work in the same text without extra wiring:</p>
+<pre><code>&lt;text&gt;Balance: %vault_eco_balance%&lt;/text&gt;</code></pre>
+
+<h2 id="conditions">Conditions</h2>
+<p><code>Condition</code> is a functional interface: <code>boolean test(ConditionContext context)</code>.
+<code>ConditionContext</code> wraps the <code>Player</code> plus any attributes you choose to attach.</p>
+
+<h3 id="condition-usage">Where conditions apply</h3>
+<table>
+<tr><th>Java</th><th>Markup</th><th>Effect</th></tr>
+<tr><td><code>component.visibleIf(condition)</code></td><td><code>visible-if="..."</code></td><td>Hides the element (and its children, if a container) when false.</td></tr>
+<tr><td><code>button.enabledIf(condition)</code></td><td><code>enabled-if="..."</code></td><td>Keeps the button visible but rejects clicks when false.</td></tr>
+<tr><td><code>component.permission(node)</code></td><td><code>permission="..."</code></td><td>Shorthand for <code>visibleIf(Condition.permission(node))</code>.</td></tr>
+</table>
+
+<h3 id="condition-combinators">Combining conditions in Java</h3>
+<pre><code>Condition canBuy = Condition.permission("myplugin.shop")
+    .and(ctx -&gt; economy.balance(ctx.player()) &gt;= 50)
+    .negate();
+
+Condition always = Condition.always();
+Condition never = Condition.never();
+Condition notAdmin = Condition.not(Condition.permission("myplugin.admin"));</code></pre>
+
+<h3 id="condition-expressions">Condition expressions (markup / strings)</h3>
+<p><code>ConditionRegistry.parse(String)</code> turns a short string into a <code>Condition</code> &mdash;
+this is what powers <code>visible-if</code> and <code>enabled-if</code> in markup:</p>
+<table>
+<tr><th>Syntax</th><th>Meaning</th></tr>
+<tr><td><code>permission:some.node</code> or <code>perm:some.node</code></td><td>True if the player has that permission.</td></tr>
+<tr><td><code>some.node</code> <em>(no prefix)</em></td><td>Same as <code>permission:some.node</code> &mdash; a bare string is treated as a permission node.</td></tr>
+<tr><td><code>!permission:some.node</code></td><td>Leading <code>!</code> negates the whole expression.</td></tr>
+</table>
+
+<h3 id="custom-condition-prefixes">Registering a custom prefix</h3>
+<p>Register your own prefix to unlock expressions like <code>economy:100</code> in markup:</p>
+<pre><code>HTMLib.conditions().register("economy", remainder -&gt; {
+    double required = Double.parseDouble(remainder);
+    return ctx -&gt; economy.balance(ctx.player()) &gt;= required;
+});</code></pre>
+<pre><code>&lt;button action=<span class="attr">"myplugin:buy.shield"</span> enabled-if=<span class="attr">"economy:80"</span>&gt;Buy Shield&lt;/button&gt;</code></pre>
+
+<div class="page-nav">
+<a href="markup.html"><span class="dir">Back</span>&larr; XML Markup</a>
+<a class="next" href="actions-events.html"><span class="dir">Next</span>Actions &amp; Events &rarr;</a>
+</div>
+
+<footer class="site-footer">HTMLib &middot; core library documentation</footer>
+</main>
+</div>
+</body>
+</html>

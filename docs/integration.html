@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLib &mdash; For Plugin Developers</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+    <div class="brand"><span class="brand-name">HTMLib</span><span class="brand-tag">docs</span></div>
+    <span class="version-badge">v0.1.0</span>
+    <div class="nav-group">
+        <h4>Getting Started</h4>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="integration.html" class="active">For Plugin Developers</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Building Menus</h4>
+        <ul>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="markup.html">XML Markup</a></li>
+            <li><a href="variables-conditions.html">Variables &amp; Conditions</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Behavior</h4>
+        <ul>
+            <li><a href="actions-events.html">Actions &amp; Events</a></li>
+            <li><a href="rendering.html">Rendering</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="content">
+
+<h1>For Plugin Developers</h1>
+<p class="lede">HTMLib is installed as its own plugin. Your plugin depends on it at compile time and
+runtime, the same way you'd depend on any other API-providing plugin like Vault or PlaceholderAPI.</p>
+
+<h2 id="gradle">Gradle dependency</h2>
+<p>HTMLib is split into small modules, all under group <code>dev.htmlib</code>. The <code>htmlib-paper</code>
+jar you install on the server already bundles <code>htmlib-api</code>, <code>htmlib-layout</code>,
+<code>htmlib-events</code>, <code>htmlib-navigation</code> and <code>htmlib-markup</code> at runtime, so
+your own build only needs them as <code>compileOnly</code>:</p>
+
+<pre><code>dependencies {
+    compileOnly("dev.htmlib:htmlib-api:0.1.0")
+    compileOnly("dev.htmlib:htmlib-events:0.1.0")
+    compileOnly("dev.htmlib:htmlib-markup:0.1.0")   // only if you parse XML markup yourself
+}</code></pre>
+
+<p>The API surface you'll actually import lives in a handful of packages:</p>
+<table>
+<tr><th>Package</th><th>Contains</th></tr>
+<tr><td><code>dev.htmlib.api.component</code></td><td>Menu, Button, Row, Column, Div, Text, Icon, Image, Input, ListComponent</td></tr>
+<tr><td><code>dev.htmlib.api.condition</code></td><td>Condition, ConditionContext, ConditionRegistry</td></tr>
+<tr><td><code>dev.htmlib.api.navigation</code></td><td>MenuController, MenuRenderer</td></tr>
+<tr><td><code>dev.htmlib.api.variable</code></td><td>VariableRegistry, VariableResolver</td></tr>
+<tr><td><code>dev.htmlib.events</code></td><td>Action, ActionEvent, ActionRegistry, EventBus and the menu lifecycle events</td></tr>
+<tr><td><code>dev.htmlib.markup</code></td><td>MarkupLoader, CssParser, MarkupException</td></tr>
+</table>
+
+<h2 id="plugin-yml">plugin.yml</h2>
+<p>Declare HTMLib as a dependency so your plugin loads after it (use <code>softdepend</code> instead if
+your plugin can also run without HTMLib installed):</p>
+
+<pre><code>name: MyPlugin
+main: com.example.myplugin.MyPlugin
+version: 1.0.0
+api-version: "26.2"
+depend: [HTMLib]</code></pre>
+
+<h2 id="entry-points">Talking to HTMLib at runtime</h2>
+<p>Once HTMLib is enabled, <code>dev.htmlib.paper.HTMLib</code> is the static facade you'll use from your
+own plugin code &mdash; it forwards to HTMLib's live registries:</p>
+
+<pre><code>import dev.htmlib.paper.HTMLib;
+
+HTMLib.menus().register(menu);              // MenuRegistry
+HTMLib.registerAction("myplugin:buy", ev -&gt; ...); // shorthand for HTMLib.actions().register(...)
+HTMLib.actions();                            // ActionRegistry
+HTMLib.variables();                          // VariableRegistry
+HTMLib.conditions();                         // ConditionRegistry
+HTMLib.events();                             // EventBus
+
+HTMLib.open(player, "myplugin:shop");        // open a registered menu by id
+HTMLib.open(player, menu);                   // open a Menu instance directly
+HTMLib.back(player);
+HTMLib.close(player);</code></pre>
+
+<p>Calling any of these before HTMLib has finished enabling (for example too early in your own
+<code>onEnable</code>, if it doesn't <code>depend</code> on HTMLib) throws
+<code>IllegalStateException("HTMLib is not enabled yet")</code> &mdash; another reason to declare the
+dependency in <code>plugin.yml</code> rather than relying on load order.</p>
+
+<h3 id="menu-show">Menu.show(player)</h3>
+<p>As a shortcut, any <code>Menu</code> instance can open itself without going through the facade:</p>
+<pre><code>menu.show(player);</code></pre>
+<p>This calls into <code>HTMLibRuntime</code>, the low-level binding the paper module installs on
+enable and clears on disable. You generally won't touch <code>HTMLibRuntime</code> directly &mdash;
+<code>HTMLib</code> and <code>Menu.show(player)</code> cover normal usage.</p>
+
+<div class="callout"><strong>Note:</strong> a menu only needs to be registered
+(<code>HTMLib.menus().register(menu)</code>) if you want to open it <em>by id</em> &mdash; via
+<code>action="open:&lt;id&gt;"</code>, <code>HTMLib.open(player, "id")</code>, or
+<code>/htmlib open</code>. Opening a <code>Menu</code> instance directly with
+<code>menu.show(player)</code> or <code>HTMLib.open(player, menu)</code> works either way.</div>
+
+<div class="page-nav">
+<a href="index.html"><span class="dir">Back</span>&larr; Overview</a>
+<a class="next" href="components.html"><span class="dir">Next</span>Components &rarr;</a>
+</div>
+
+<footer class="site-footer">HTMLib &middot; core library documentation</footer>
+</main>
+</div>
+</body>
+</html>

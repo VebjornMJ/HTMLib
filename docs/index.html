@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLib &mdash; Overview</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+    <div class="brand"><span class="brand-name">HTMLib</span><span class="brand-tag">docs</span></div>
+    <span class="version-badge">v0.1.0</span>
+    <div class="nav-group">
+        <h4>Getting Started</h4>
+        <ul>
+            <li><a href="index.html" class="active">Overview</a></li>
+            <li><a href="integration.html">For Plugin Developers</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Building Menus</h4>
+        <ul>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="markup.html">XML Markup</a></li>
+            <li><a href="variables-conditions.html">Variables &amp; Conditions</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Behavior</h4>
+        <ul>
+            <li><a href="actions-events.html">Actions &amp; Events</a></li>
+            <li><a href="rendering.html">Rendering</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="content">
+
+<h1>HTMLib</h1>
+<p class="lede">Build modern Minecraft server UI, HTML/CSS-style &mdash; then render it as either Mojang's
+native dialog UI or a classic chest inventory GUI, your choice per menu.</p>
+
+<p>HTMLib is a Paper plugin that lets you describe a menu once &mdash; as a fluent Java builder chain
+or as HTML-like XML markup &mdash; and show it to a player without caring which underlying Minecraft
+UI system renders it. The same <code>&lt;button&gt;</code>, <code>&lt;text&gt;</code> and
+<code>&lt;input&gt;</code> elements work whether the menu ends up as a native dialog or a chest GUI.</p>
+
+<h2 id="requirements">Requirements</h2>
+<table>
+<tr><th>Server</th><td>Paper, API version <code>26.2</code> or newer</td></tr>
+<tr><th>Optional</th><td>PlaceholderAPI 2.11+ (soft dependency &mdash; enables <code>%placeholder%</code> tokens automatically)</td></tr>
+</table>
+
+<h2 id="installation">Installation</h2>
+<ol>
+<li>Build or download <code>htmlib-paper-&lt;version&gt;.jar</code>. This single jar already bundles
+HTMLib's api, layout, events, navigation and markup modules &mdash; nothing else to install.</li>
+<li>Drop it into your server's <code>plugins/</code> folder.</li>
+<li>Restart (or <code>/reload</code>) the server.</li>
+<li>Run <code>/htmlib list</code> to confirm it loaded &mdash; you should see the built-in
+<code>htmlib:demo</code> menu registered.</li>
+</ol>
+
+<div class="callout"><strong>Try it now:</strong> as a player, run <code>/htmlib demo</code> to open the
+built-in demo menu and see dialog rendering in action.</div>
+
+<h2 id="quick-start">Quick start</h2>
+<p>Every menu is a <code>Menu</code> component tree. Build one in Java with the fluent builder API,
+register it, and open it for a player:</p>
+
+<pre><code>Menu menu = Menu.create("myplugin:shop")
+    .title("Shop")
+    .text("Welcome, {{ player.name }}!")
+    .row(row -&gt; row
+        .button("Buy Sword").icon("diamond_sword").tooltip("50 coins")
+            .action("myplugin:buy.sword")
+        .button("Close").icon("barrier").action("close")
+    );
+
+HTMLib.menus().register(menu);
+HTMLib.registerAction("myplugin:buy.sword", event -&gt;
+    event.player().sendMessage("You bought a sword!"));
+
+// later, e.g. from a command
+menu.show(player);</code></pre>
+
+<p>Or describe the same menu as markup and load it with
+<a href="markup.html"><code>MarkupLoader</code></a>:</p>
+
+<pre><code>Menu menu = MarkupLoader.parse("""
+    &lt;menu id="myplugin:shop" title="Shop"&gt;
+        &lt;text&gt;Welcome, {{ player.name }}!&lt;/text&gt;
+        &lt;row&gt;
+            &lt;button icon="diamond_sword" tooltip="50 coins" action="myplugin:buy.sword"&gt;
+                Buy Sword
+            &lt;/button&gt;
+            &lt;button icon="barrier" action="close"&gt;Close&lt;/button&gt;
+        &lt;/row&gt;
+    &lt;/menu&gt;
+    """);</code></pre>
+
+<p>From here:</p>
+<div class="card-grid">
+<div class="card"><h4><a href="components.html">Components</a></h4><p>The full set of building blocks &mdash; Menu, Row, Column, Button, Text, Icon, Image, Input, List.</p></div>
+<div class="card"><h4><a href="markup.html">XML Markup</a></h4><p>Tag &amp; attribute reference for <code>MarkupLoader</code>, plus the CSS-like <code>&lt;style&gt;</code> block.</p></div>
+<div class="card"><h4><a href="variables-conditions.html">Variables &amp; Conditions</a></h4><p><code>{{ tokens }}</code> for live text, and <code>visible-if</code> / <code>enabled-if</code> gating.</p></div>
+<div class="card"><h4><a href="actions-events.html">Actions &amp; Events</a></h4><p>Wiring button clicks to your plugin's code, and listening for menu lifecycle events.</p></div>
+<div class="card"><h4><a href="rendering.html">Rendering</a></h4><p>Dialog vs. inventory rendering, and how submitted <code>&lt;input&gt;</code> values reach you.</p></div>
+<div class="card"><h4><a href="integration.html">For Plugin Developers</a></h4><p>Depending on HTMLib from your own plugin's Gradle build and <code>plugin.yml</code>.</p></div>
+</div>
+
+<h2 id="admin-command">Admin command</h2>
+<p>HTMLib ships a small admin/diagnostics command, guarded by the <code>htmlib.admin</code> permission
+(default: <code>op</code>):</p>
+<table>
+<tr><th>Command</th><th>Description</th></tr>
+<tr><td><code>/htmlib list</code></td><td>Lists every currently registered menu id.</td></tr>
+<tr><td><code>/htmlib open &lt;menu&gt; [player]</code></td><td>Opens a registered menu for yourself, or for another online player.</td></tr>
+<tr><td><code>/htmlib demo</code></td><td>Opens the built-in demo menu for yourself.</td></tr>
+</table>
+
+<div class="page-nav">
+<span></span>
+<a class="next" href="integration.html"><span class="dir">Next</span>For Plugin Developers &rarr;</a>
+</div>
+
+<footer class="site-footer">HTMLib &middot; core library documentation</footer>
+</main>
+</div>
+</body>
+</html>

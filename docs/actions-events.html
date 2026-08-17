@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLib &mdash; Actions &amp; Events</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+    <div class="brand"><span class="brand-name">HTMLib</span><span class="brand-tag">docs</span></div>
+    <span class="version-badge">v0.1.0</span>
+    <div class="nav-group">
+        <h4>Getting Started</h4>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="integration.html">For Plugin Developers</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Building Menus</h4>
+        <ul>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="markup.html">XML Markup</a></li>
+            <li><a href="variables-conditions.html">Variables &amp; Conditions</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Behavior</h4>
+        <ul>
+            <li><a href="actions-events.html" class="active">Actions &amp; Events</a></li>
+            <li><a href="rendering.html">Rendering</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="content">
+
+<h1>Actions &amp; Events</h1>
+<p class="lede">Actions are how a button click reaches your plugin's code. Events are a lightweight
+publish/subscribe bus for menu lifecycle notifications.</p>
+
+<h2 id="actions">Actions</h2>
+<p>Every <code>Button</code> (and a menu's <code>submitAction</code>) carries an action id. When it's
+clicked, HTMLib dispatches an <code>ActionEvent</code> through the <code>ActionRegistry</code>.</p>
+
+<h3 id="builtin-actions">Built-in navigation actions</h3>
+<p>These three ids are handled automatically &mdash; you never need to register them:</p>
+<table>
+<tr><th>Action id</th><th>Effect</th></tr>
+<tr><td><code>back</code></td><td>Returns to the previous menu in the player's history.</td></tr>
+<tr><td><code>close</code></td><td>Closes the current menu.</td></tr>
+<tr><td><code>open:&lt;menuId&gt;</code></td><td>Opens another <em>registered</em> menu by id.</td></tr>
+</table>
+<pre><code>&lt;button icon=<span class="attr">"barrier"</span> action=<span class="attr">"close"</span>&gt;Close&lt;/button&gt;
+&lt;button icon=<span class="attr">"chest"</span> action=<span class="attr">"open:myplugin:shop"</span>&gt;Open Shop&lt;/button&gt;</code></pre>
+
+<h3 id="custom-actions">Registering a custom action</h3>
+<pre><code>HTMLib.registerAction("myplugin:buy.sword", event -&gt; {
+    Player player = event.player();
+    if (economy.withdraw(player, 50)) {
+        player.getInventory().addItem(new ItemStack(Material.DIAMOND_SWORD));
+        player.sendMessage("Purchased!");
+    } else {
+        player.sendMessage("Not enough coins.");
+    }
+});</code></pre>
+<p><code>Action</code> is a <code>@FunctionalInterface</code>: <code>void handle(ActionEvent event)</code>.
+<code>HTMLib.registerAction(id, action)</code> is shorthand for
+<code>HTMLib.actions().register(id, action)</code>; use <code>HTMLib.actions().unregister(id)</code> to
+remove one.</p>
+
+<h3 id="action-event">ActionEvent</h3>
+<table>
+<tr><th>Method</th><th>Returns</th></tr>
+<tr><td><code>player()</code></td><td>The <code>Player</code> who clicked.</td></tr>
+<tr><td><code>actionId()</code></td><td>The action id that fired.</td></tr>
+<tr><td><code>menu()</code></td><td>The <code>Menu</code> that was open when it fired.</td></tr>
+<tr><td><code>source()</code></td><td>The <code>Button</code> that fired it, or <code>null</code> for a menu-level submit action.</td></tr>
+<tr><td><code>inputs()</code></td><td><code>Map&lt;String, Object&gt;</code> of submitted <code>&lt;input&gt;</code> values, keyed by input key.</td></tr>
+<tr><td><code>inputText(key)</code> / <code>inputBoolean(key)</code> / <code>inputNumber(key)</code></td><td>Typed convenience getters over <code>inputs()</code>, returning <code>null</code> if absent or the wrong type.</td></tr>
+<tr><td><code>open(String menuId)</code> / <code>open(Menu)</code></td><td>Navigate to another menu from inside a handler.</td></tr>
+<tr><td><code>back()</code> / <code>close()</code></td><td>Same navigation the built-in actions perform.</td></tr>
+</table>
+<pre><code>HTMLib.registerAction("myplugin:shop.checkout", event -&gt; {
+    Integer quantity = event.inputNumber("quantity") != null
+        ? event.inputNumber("quantity").intValue() : 1;
+    // ... process purchase ...
+    event.close();
+});</code></pre>
+
+<h3 id="registration-required">Menus must be registered to be opened by id</h3>
+<p><code>action="open:&lt;id&gt;"</code>, <code>HTMLib.open(player, "id")</code> and
+<code>/htmlib open</code> all look the menu up in the <code>MenuRegistry</code>. Register it once,
+typically in your plugin's <code>onEnable</code>:</p>
+<pre><code>HTMLib.menus().register(menu);</code></pre>
+<p>Opening a <code>Menu</code> object directly &mdash; <code>menu.show(player)</code> or
+<code>HTMLib.open(player, menu)</code> &mdash; doesn't require registration.</p>
+
+<h2 id="events">Events</h2>
+<p>HTMLib publishes a small set of lifecycle events through its own <code>EventBus</code> &mdash;
+independent of Bukkit's event system, so you subscribe through <code>HTMLib.events()</code> rather
+than <code>@EventHandler</code>:</p>
+<pre><code>HTMLib.events().subscribe(MenuOpenEvent.class, event -&gt;
+    getLogger().info(event.player().getName() + " opened " + event.menu().menuId()));</code></pre>
+
+<table>
+<tr><th>Event</th><th>Fields</th><th>Published when</th></tr>
+<tr><td><code>MenuOpenEvent</code></td><td><code>Player player, Menu menu</code></td><td>A menu is shown to a player (including the first menu in a navigation chain).</td></tr>
+<tr><td><code>MenuBackEvent</code></td><td><code>Player player, Menu menu</code></td><td>A player navigates back to a previous menu.</td></tr>
+<tr><td><code>MenuCloseEvent</code></td><td><code>Player player, Menu menu</code></td><td>A menu is closed (including via the <code>close</code> action).</td></tr>
+<tr><td><code>ActionInvokedEvent</code></td><td><code>ActionEvent source, boolean handled</code></td><td>After every action dispatch attempt &mdash; <code>handled</code> tells you whether anything actually processed it.</td></tr>
+</table>
+
+<div class="page-nav">
+<a href="variables-conditions.html"><span class="dir">Back</span>&larr; Variables &amp; Conditions</a>
+<a class="next" href="rendering.html"><span class="dir">Next</span>Rendering &rarr;</a>
+</div>
+
+<footer class="site-footer">HTMLib &middot; core library documentation</footer>
+</main>
+</div>
+</body>
+</html>

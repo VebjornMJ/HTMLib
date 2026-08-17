@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMLib &mdash; Components</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+    <div class="brand"><span class="brand-name">HTMLib</span><span class="brand-tag">docs</span></div>
+    <span class="version-badge">v0.1.0</span>
+    <div class="nav-group">
+        <h4>Getting Started</h4>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="integration.html">For Plugin Developers</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Building Menus</h4>
+        <ul>
+            <li><a href="components.html" class="active">Components</a></li>
+            <li><a href="markup.html">XML Markup</a></li>
+            <li><a href="variables-conditions.html">Variables &amp; Conditions</a></li>
+        </ul>
+    </div>
+    <div class="nav-group">
+        <h4>Behavior</h4>
+        <ul>
+            <li><a href="actions-events.html">Actions &amp; Events</a></li>
+            <li><a href="rendering.html">Rendering</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="content">
+
+<h1>Components</h1>
+<p class="lede">Every menu is a tree of <code>Component</code> objects, built with a fluent Java API.
+All of these live in <code>dev.htmlib.api.component</code>.</p>
+
+<h2 id="component">Component &mdash; shared by everything</h2>
+<p>Every component (including containers) extends the abstract <code>Component&lt;SELF&gt;</code> and
+inherits these methods, all of which return <code>this</code> for chaining:</p>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>id(String)</code></td><td>Sets an element id, mainly useful for markup / debugging (<code>toString()</code> includes it).</td></tr>
+<tr><td><code>cssClass(String... classes)</code></td><td>Adds one or more CSS-style class names, used by <code>&lt;style&gt;</code> rules in markup.</td></tr>
+<tr><td><code>style(String key, String value)</code></td><td>Sets a single inline style declaration.</td></tr>
+<tr><td><code>visibleIf(Condition)</code></td><td>Hides this element (and, for containers, everything inside it) when the condition is false.</td></tr>
+<tr><td><code>permission(String node)</code></td><td>Shorthand for <code>visibleIf(Condition.permission(node))</code>.</td></tr>
+</table>
+<p>See <a href="variables-conditions.html">Variables &amp; Conditions</a> for how <code>Condition</code>
+works.</p>
+
+<h2 id="container">Container &mdash; anything that can hold children</h2>
+<p><code>Container&lt;SELF&gt;</code> extends <code>Component</code> and adds child-management. It's the
+base of <code>Menu</code>, <code>Div</code>, <code>Row</code>, <code>Column</code> and
+<code>ListComponent</code>:</p>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>add(Component&lt;?&gt;... components)</code></td><td>Appends one or more children directly.</td></tr>
+<tr><td><code>text(String content)</code></td><td>Shorthand for <code>add(new Text(content))</code>.</td></tr>
+<tr><td><code>button(String text)</code></td><td>Creates and adds a <code>Button</code>, returning a <code>ButtonBuilder</code> for further chaining.</td></tr>
+<tr><td><code>row(Consumer&lt;Row&gt;)</code></td><td>Creates, adds and configures a nested <code>Row</code>.</td></tr>
+<tr><td><code>column(Consumer&lt;Column&gt;)</code></td><td>Creates, adds and configures a nested <code>Column</code>.</td></tr>
+<tr><td><code>div(Consumer&lt;Div&gt;)</code></td><td>Creates, adds and configures a nested <code>Div</code>.</td></tr>
+</table>
+
+<h3 id="button-builder">ButtonBuilder</h3>
+<p><code>container.button("text")</code> returns a <code>ButtonBuilder</code> so you can configure the
+button and keep chaining on the parent container:</p>
+<pre><code>row.button("Buy Sword")
+      .icon("diamond_sword")
+      .tooltip("50 coins")
+      .action("myplugin:buy.sword")
+      .enabledIf(hasEnoughCoins)
+   .button("Close").icon("barrier").action("close");</code></pre>
+<p>Call <code>.and()</code> to get back the parent container explicitly, or <code>.build()</code> to get
+the underlying <code>Button</code>.</p>
+
+<h2 id="menu">Menu</h2>
+<p>The root of every UI tree. Created with the static factory <code>Menu.create(String menuId)</code>
+&mdash; there's no public constructor.</p>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>title(String)</code></td><td>Menu title.</td></tr>
+<tr><td><code>canCloseWithEscape(boolean)</code></td><td>Whether pressing Escape closes the menu (dialog rendering only). Default <code>true</code>.</td></tr>
+<tr><td><code>submitAction(String)</code> / <code>submitLabel(String)</code></td><td>Adds an extra submit button that fires this action id with every <code>&lt;input&gt;</code> value attached. See <a href="rendering.html#inputs">Inputs &amp; submit</a>.</td></tr>
+<tr><td><code>dialog()</code> / <code>inventory()</code></td><td>Selects the render type. Default is <code>dialog()</code>.</td></tr>
+<tr><td><code>inventoryRows(int)</code></td><td>Selects inventory rendering with 1&ndash;6 rows (clamped).</td></tr>
+<tr><td><code>show(Player)</code></td><td>Opens this menu for a player immediately.</td></tr>
+</table>
+
+<h2 id="row-column">Row &amp; Column</h2>
+<p>Flex-style layout containers. Both default to <code>display: flex</code> with a <code>gap</code> of
+<code>1</code>; <code>Row</code> lays children out horizontally, <code>Column</code> vertically.</p>
+<pre><code>menu.row(row -&gt; row.gap(2).align("center")
+    .button("A")
+    .button("B"));</code></pre>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>gap(int)</code></td><td>Sets the <code>gap</code> style property.</td></tr>
+<tr><td><code>align(String)</code></td><td>Sets the <code>align</code> style property.</td></tr>
+</table>
+
+<h2 id="div">Div</h2>
+<p>A plain grouping container with no layout defaults of its own &mdash; use it when you just need to
+group elements (for a shared <code>visibleIf</code>, a shared CSS class, etc.) without Row/Column's
+flex defaults.</p>
+
+<h2 id="button">Button</h2>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>text(String)</code></td><td>Label shown on the button.</td></tr>
+<tr><td><code>icon(String)</code></td><td>Item material id shown next to/on the button, e.g. <code>"diamond_sword"</code>.</td></tr>
+<tr><td><code>tooltip(String)</code></td><td>Hover tooltip text.</td></tr>
+<tr><td><code>action(String)</code></td><td>The action id dispatched when clicked. See <a href="actions-events.html">Actions &amp; Events</a>.</td></tr>
+<tr><td><code>width(int)</code></td><td>Button width in dialog rendering (clamped to 1&ndash;1024).</td></tr>
+<tr><td><code>enabledIf(Condition)</code></td><td>Keeps the button visible but rejects clicks when false, instead of hiding it like <code>visibleIf</code> would.</td></tr>
+</table>
+
+<h2 id="text">Text</h2>
+<p>Static text content. Supports <code>{{ variable }}</code> interpolation, resolved fresh every time
+the menu is rendered.</p>
+<pre><code>new Text("Welcome, {{ player.name }}!")
+container.text("Online: {{ server.online }}");</code></pre>
+
+<h2 id="icon">Icon</h2>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>material(String)</code></td><td>Minecraft item id, e.g. <code>"diamond_sword"</code> or <code>"minecraft:diamond_sword"</code>. Unresolvable materials fall back to stone.</td></tr>
+<tr><td><code>count(int)</code></td><td>Stack size shown on the icon (minimum 1).</td></tr>
+<tr><td><code>showTooltip(boolean)</code></td><td>Whether hovering shows the item's tooltip. Default <code>true</code>.</td></tr>
+</table>
+
+<h2 id="image">Image</h2>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>source(String)</code></td><td>Image source.</td></tr>
+<tr><td><code>fallbackIcon(String)</code></td><td>Material used to represent the image. Default <code>"minecraft:painting"</code>.</td></tr>
+</table>
+<div class="callout"><strong>Note:</strong> in the current renderer, an <code>Image</code> element is
+always drawn using its <code>fallbackIcon</code> material &mdash; set that to whatever best represents
+the image you want to show.</div>
+
+<h2 id="input">Input</h2>
+<p>A form field, submitted as part of a menu's <code>submitAction</code> (or read directly off any
+button click). Created with <code>new Input(String key)</code> &mdash; the key is how you'll read the
+value back from <code>ActionEvent</code>.</p>
+<p>The input's type is inferred by which setter you call:</p>
+<table>
+<tr><th>Method</th><th>Sets type</th><th>Effect</th></tr>
+<tr><td><code>initialText(String)</code></td><td><code>TEXT</code></td><td>Free text field, default type.</td></tr>
+<tr><td><code>initialBoolean(boolean)</code></td><td><code>BOOLEAN</code></td><td>Checkbox / toggle.</td></tr>
+<tr><td><code>numberRange(min, max, step, initial)</code></td><td><code>NUMBER</code></td><td>Bounded numeric slider.</td></tr>
+<tr><td><code>options(String...)</code></td><td><code>OPTION</code></td><td>Single-choice picker over the given options.</td></tr>
+</table>
+<p>Plus, on every type: <code>label(String)</code> and <code>width(int)</code> (default 200).</p>
+
+<h2 id="list">ListComponent&lt;T&gt;</h2>
+<p>A container that renders one child per item from a data source &mdash; useful for player-specific
+lists (inventories, shop stock, friend lists, etc.).</p>
+<table>
+<tr><th>Method</th><th>Effect</th></tr>
+<tr><td><code>dataSource(Function&lt;Player, List&lt;T&gt;&gt;)</code></td><td>Supplies the items to render for a given player.</td></tr>
+<tr><td><code>itemRenderer(Function&lt;T, Component&lt;?&gt;&gt;)</code></td><td>Converts each item into the component shown for it.</td></tr>
+</table>
+<pre><code>new ListComponent&lt;ShopItem&gt;()
+    .dataSource(player -&gt; shop.stockFor(player))
+    .itemRenderer(item -&gt; new Button()
+        .text(item.name())
+        .icon(item.material())
+        .action("shop:buy:" + item.id()));</code></pre>
+
+<div class="page-nav">
+<a href="integration.html"><span class="dir">Back</span>&larr; For Plugin Developers</a>
+<a class="next" href="markup.html"><span class="dir">Next</span>XML Markup &rarr;</a>
+</div>
+
+<footer class="site-footer">HTMLib &middot; core library documentation</footer>
+</main>
+</div>
+</body>
+</html>
