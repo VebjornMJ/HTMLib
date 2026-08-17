@@ -1,0 +1,16 @@
+name: HTMLib
+main: dev.htmlib.paper.HTMLibPlugin
+version: ${version}
+api-version: "26.2"
+description: A paper library aimed at helping minecraft plugin developers create fashionable GUI's. It was built with similarity to HTML.
+author: VebjornMJ
+website: https://github.com/VebjornMJ/HTMLib
+softdepend: [PlaceholderAPI]
+commands:
+  htmlib:
+    description: HTMLib administration and diagnostics.
+    usage: /htmlib <list|open|demo>
+permissions:
+  htmlib.admin:
+    description: Access to HTMLib admin commands.
+    default: op
